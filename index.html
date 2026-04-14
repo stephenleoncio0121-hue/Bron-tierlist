@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bron-tierlist</title>
+
+<style>
+body{margin:0;background:#020617;color:white;font-family:Arial}
+header{text-align:center;padding:12px;border-bottom:1px solid #1f2937;font-weight:bold}
+
+.container{padding:10px}
+
+.panel{
+  background:#0b1220;
+  border:1px solid #1f2937;
+  border-radius:12px;
+  padding:10px;
+  margin-bottom:10px;
+}
+
+input,select,button{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  border:none;
+  border-radius:8px;
+}
+
+button{background:#22c55e;color:black;font-weight:bold}
+
+.player{
+  background:#111827;
+  padding:10px;
+  margin-top:6px;
+  border-radius:10px;
+}
+
+.badge{font-size:11px;padding:3px 6px;border-radius:6px}
+.owner{background:red}
+.admin{background:orange;color:black}
+.manager{background:yellow;color:black}
+.tester{background:#22c55e;color:black}
+.playerRole{background:#64748b}
+
+.queueBox{background:#111827;padding:8px;border-radius:8px;margin-top:5px}
+
+.small{font-size:12px;opacity:0.7}
+</style>
+</head>
+
+<body>
+
+<header>🌌 Bron-tierlist Omniverse</header>
+
+<div class="container">
+
+<div class="panel">
+<h3>Create Player</h3>
+<input id="name" placeholder="Name">
+
+<select id="role">
+<option>player</option>
+<option>tester</option>
+<option>manager</option>
+<option>admin</option>
+<option>owner</option>
+</select>
+
+<button onclick="addPlayer()">Spawn</button>
+</div>
+
+<div class="panel">
+<h3>Tester Panel</h3>
+<select id="target"></select>
+
+<select id="title">
+<option>Grandmaster</option>
+<option>Combat Ace</option>
+<option>Combat Master</option>
+</select>
+
+<select id="tier">
+<option>HT1</option><option>HT2</option><option>HT3</option>
+<option>HT4</option><option>HT5</option><option>HT6</option>
+<option>LT1</option><option>LT2</option><option>LT3</option>
+<option>LT4</option><option>LT5</option><option>LT6</option>
+</select>
+
+<button onclick="approve()">Approve Player</button>
+</div>
+
+<div class="panel">
+<h3>Gamemode Queue</h3>
+
+<select id="mode">
+<option>lifesteal</option>
+<option>nethpot</option>
+<option>pot</option>
+<option>lifesteal smp</option>
+<option>sword</option>
+<option>axe</option>
+<option>mace</option>
+<option>cpvp</option>
+</select>
+
+<button onclick="joinQueue()">Join Queue</button>
+</div>
+
+<div class="panel">
+<h3>Queues</h3>
+<div id="queues"></div>
+</div>
+
+<div class="panel">
+<h3>Leaderboard</h3>
+<div id="list"></div>
+</div>
+
+<div class="panel">
+<h3>Log</h3>
+<p id="log"></p>
+</div>
+
+</div>
+
+<script>
+let players = JSON.parse(localStorage.getItem("players")||"{}");
+
+let queues = {
+  lifesteal:[], nethpot:[], pot:[], "lifesteal smp":[],
+  sword:[], axe:[], mace:[], cpvp:[]
+};
+
+function save(){
+  localStorage.setItem("players",JSON.stringify(players));
+}
+
+function addPlayer(){
+  let n = name.value;
+  if(!n) return;
+
+  players[n] = {
+    name:n,
+    role:role.value,
+    tier:"LT3",
+    title:"",
+    elo:1000,
+    wins:0,
+    losses:0
+  };
+
+  save();
+  render();
+}
+
+function approve(){
+  let t = target.value;
+  if(!players[t]) return;
+
+  players[t].title = document.getElementById("title").value;
+  players[t].tier = document.getElementById("tier").value;
+
+  save();
+  render();
+}
+
+function joinQueue(){
+  let mode = document.getElementById("mode").value;
+  let names = Object.keys(players);
+  if(names.length===0) return;
+
+  let p = names[0]; // simulate current player
+
+  if(!queues[mode].includes(p)){
+    queues[mode].push(p);
+  }
+
+  if(queues[mode].length >= 2){
+    fight(mode, queues[mode].shift(), queues[mode].shift());
+  }
+
+  render();
+}
+
+function fight(mode,a,b){
+  let A = players[a];
+  let B = players[b];
+
+  let powerA = A.elo + Math.random()*200;
+  let powerB = B.elo + Math.random()*200;
+
+  let winner = powerA > powerB ? A : B;
+  let loser = winner===A?B:A;
+
+  winner.elo += 50;
+  winner.wins++;
+
+  loser.elo -= 30;
+  loser.losses++;
+
+  updateTier(winner);
+  updateTier(loser);
+
+  log.innerText = winner.name + " beat " + loser.name + " in " + mode;
+}
+
+function updateTier(p){
+  if(p.elo>=2000)p.tier="HT1";
+  else if(p.elo>=1800)p.tier="HT2";
+  else if(p.elo>=1600)p.tier="HT3";
+  else if(p.elo>=1400)p.tier="HT4";
+  else if(p.elo>=1200)p.tier="HT5";
+  else if(p.elo>=1100)p.tier="HT6";
+  else if(p.elo>=1000)p.tier="LT1";
+  else if(p.elo>=900)p.tier="LT2";
+  else if(p.elo>=800)p.tier="LT3";
+  else if(p.elo>=700)p.tier="LT4";
+  else if(p.elo>=600)p.tier="LT5";
+  else p.tier="LT6";
+}
+
+function render(){
+  list.innerHTML="";
+  queuesDiv = document.getElementById("queues");
+  queuesDiv.innerHTML="";
+  target.innerHTML="";
+
+  Object.values(players)
+  .sort((a,b)=>b.elo-a.elo)
+  .forEach((p,i)=>{
+    let div=document.createElement("div");
+    div.className="player";
+
+    div.innerHTML=`
+    #${i+1} <b>${p.name}</b>
+    <span class="badge ${p.role}">${p.role}</span>
+    <br>${p.tier} ${p.title||""}
+    <div class="small">ELO:${p.elo} W:${p.wins} L:${p.losses}</div>
+    `;
+
+    list.appendChild(div);
+
+    let opt=document.createElement("option");
+    opt.value=p.name;
+    opt.text=p.name;
+    target.appendChild(opt);
+  });
+
+  Object.keys(queues).forEach(m=>{
+    let div=document.createElement("div");
+    div.className="queueBox";
+    div.innerText = m + ": " + queues[m].length;
+    queuesDiv.appendChild(div);
+  });
+}
+
+render();
+</script>
+
+</body>
+</html>
